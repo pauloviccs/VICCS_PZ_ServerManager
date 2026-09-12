@@ -2,6 +2,24 @@
 
 Todas as alterações relevantes e marcos de desenvolvimento do PZ Server Manager são registrados neste arquivo.
 
+## [1.1.0] - 2026-09-12
+### Adicionado & Melhorias (Build 42 & Opção 55)
+- **RAM Customizada:** Seletor de memória RAM no cabeçalho com presets comuns (4G a 64G) e modo de edição inline permitindo selecionar qualquer quantidade de 1 a 128 GB.
+- **Opção 55 (Encerramento Programado & Backup Automático):**
+  - Modal interativo para programar encerramento em minutos ou horas.
+  - Avisos in-game via RCON `servermsg` a cada minuto e contagem regressiva crítica nos momentos finais (60s, 30s, 15s, 10s... 1s).
+  - Notificações automáticas integradas no canal do Discord.
+  - Salvamento automático de chunks (`save`), geração de snapshot de backup timestamped em `Zomboid_Backups` e finalização segura do processo (`quit`).
+  - Integração com `shutdown /s /t <sec>` do Windows com atraso configurável e botão global de abortar/cancelar (`shutdown /a`).
+- **Engenharia Reversa & Correção de Skills B42:**
+  - Identificadores Java nativos corrigidos: `Woodwork` (Carpintaria), `Doctor` (Primeiros Socorros) e `Sneak` (Furtividade).
+  - Adicionadas 9 novas perícias da Build 42 (`Blacksmith`, `Masonry`, `Pottery`, `Glassmaking`, `Carving`, `FlintKnapping`, `Tracking`, `Husbandry`, `Butchering`).
+- **Cura de Jogador na B42:** Comando RCON atualizado para o padrão nativo `godmodeplayer "<nick>" -true/-false`.
+- **Controle de Chuva Unificado:** Slide toggle `TacticalSwitch` substituindo botões separados.
+- **Manual Interativo de Comandos B42:** Interface com busca instantânea, divisão por categorias e cópia/execução rápida.
+- **Logs do App Persistentes em Disco:** Gravação em `%USERPROFILE%\Zomboid\ServerManager_Logs\pz_manager_<data>.log` e nova aba "Logs do App" na Sidebar.
+- **Compilação de Instaladores:** Geração dos pacotes de produção NSIS `.exe` e `.msi` via Tauri v2.
+
 ## [1.0.0] - 2026-09-12
 ### Adicionado
 - **Arquitetura & Shell:** Inicialização do workspace Tauri v2 com Rust 2021 e React 18 / Vite 6.

@@ -17,9 +17,15 @@
 - [x] Tela de ajustes com caminhos configuráveis e webhooks do Discord opcionais.
 - [x] Validação de compilação do Rust (`cargo check` = 0) e build de produção do frontend (`npm run build` = 0).
 - [x] Documentação de arquitetura, stack, UI/UX e code style integradas ao córtex `.agent`.
+- [x] Opção 55: Desligamento programado com contagem, avisos in-game/Discord, save, backup e shutdown do Windows.
+- [x] Seletor de memória RAM customizada de 1 a 128 GB no launcher.
+- [x] Engenharia reversa das skills da Build 42 (Woodwork, Doctor, Sneak + 9 novas perícias).
+- [x] Cura de jogador no RCON via `godmodeplayer <nick> -true/-false`.
+- [x] Controle de Chuva unificado em slide switch.
+- [x] Manual interativo de comandos nativos com busca e categorias.
+- [x] Registro de logs persistentes em disco e tela de diagnósticos.
+- [x] Geração de instalador NSIS e pacote MSI via Tauri v2.
 
-## Próximos Passos (Fase 3 & Refinamentos)
-- [ ] Testar execução em tempo real na máquina do usuário via `npm run tauri dev`.
-- [ ] Gerar instalador final `.exe` (NSIS) via `npm run tauri build`.
+## Próximos Passos (Refinamentos Futuros)
 - [ ] Editor assistido de coordenadas de spawn X/Y/Z para `spawnpoints.lua`.
 - [ ] Auto-reconexão com retry progressivo em caso de timeout de rede RCON.
