@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Play,
   Square,
@@ -26,6 +26,9 @@ export const TopHeader: React.FC = () => {
     showToast,
     addLog,
   } = useServerStore();
+
+  const presetRams = ["4g", "6g", "8g", "10g", "12g", "16g", "20g", "24g", "32g", "48g", "64g"];
+  const [isCustomRam, setIsCustomRam] = useState(!presetRams.includes(ram));
 
   const handleStartServer = async () => {
     try {
@@ -129,18 +132,57 @@ export const TopHeader: React.FC = () => {
         {status === "offline" && (
           <div className="flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10">
             <span className="text-xs font-mono text-tactical-muted">RAM:</span>
-            <select
-              value={ram}
-              onChange={(e) => setRam(e.target.value)}
-              className="bg-transparent text-tactical-amber font-mono font-bold text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="4g" className="bg-[#12141A] text-white">4 GB</option>
-              <option value="8g" className="bg-[#12141A] text-white">8 GB</option>
-              <option value="12g" className="bg-[#12141A] text-white">12 GB</option>
-              <option value="16g" className="bg-[#12141A] text-white">16 GB (Padrão)</option>
-              <option value="24g" className="bg-[#12141A] text-white">24 GB</option>
-              <option value="32g" className="bg-[#12141A] text-white">32 GB</option>
-            </select>
+            {!isCustomRam ? (
+              <select
+                value={presetRams.includes(ram) ? ram : "custom"}
+                onChange={(e) => {
+                  if (e.target.value === "custom") {
+                    setIsCustomRam(true);
+                  } else {
+                    setRam(e.target.value);
+                  }
+                }}
+                className="bg-transparent text-tactical-amber font-mono font-bold text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="4g" className="bg-[#12141A] text-white">4 GB</option>
+                <option value="6g" className="bg-[#12141A] text-white">6 GB</option>
+                <option value="8g" className="bg-[#12141A] text-white">8 GB</option>
+                <option value="10g" className="bg-[#12141A] text-white">10 GB</option>
+                <option value="12g" className="bg-[#12141A] text-white">12 GB</option>
+                <option value="16g" className="bg-[#12141A] text-white">16 GB (Padrão)</option>
+                <option value="20g" className="bg-[#12141A] text-white">20 GB</option>
+                <option value="24g" className="bg-[#12141A] text-white">24 GB</option>
+                <option value="32g" className="bg-[#12141A] text-white">32 GB</option>
+                <option value="48g" className="bg-[#12141A] text-white">48 GB</option>
+                <option value="64g" className="bg-[#12141A] text-white">64 GB</option>
+                <option value="custom" className="bg-[#12141A] text-tactical-cyan">✏️ Customizada...</option>
+              </select>
+            ) : (
+              <div className="flex items-center space-x-1.5">
+                <input
+                  type="number"
+                  min="1"
+                  max="128"
+                  value={ram.replace(/[^0-9]/g, "")}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) setRam(`${val}g`);
+                  }}
+                  className="w-12 bg-black/60 border border-tactical-amber/50 rounded px-1.5 py-0.5 text-tactical-amber font-mono font-bold text-xs text-center focus:outline-none"
+                  placeholder="16"
+                  autoFocus
+                />
+                <span className="text-xs font-mono text-tactical-amber font-bold">GB</span>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomRam(false)}
+                  title="Voltar para lista de opções de RAM"
+                  className="text-[10px] text-tactical-muted hover:text-white px-1 font-mono hover:bg-white/10 rounded"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
         )}
 

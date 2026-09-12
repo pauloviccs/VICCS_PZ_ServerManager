@@ -14,6 +14,7 @@ interface TacticalModalProps {
   isDestructive?: boolean;
   isLoading?: boolean;
   disablePrimary?: boolean;
+  maxWidth?: string;
 }
 
 export const TacticalModal: React.FC<TacticalModalProps> = ({
@@ -28,6 +29,7 @@ export const TacticalModal: React.FC<TacticalModalProps> = ({
   isDestructive = false,
   isLoading = false,
   disablePrimary = false,
+  maxWidth = "max-w-lg",
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -44,7 +46,7 @@ export const TacticalModal: React.FC<TacticalModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-lg tactical-glass rounded-2xl overflow-hidden shadow-2xl border ${
+        className={`w-full ${maxWidth} tactical-glass rounded-2xl overflow-hidden shadow-2xl border ${
           isDestructive
             ? "border-tactical-red/40 shadow-red-glow/20"
             : "border-white/15 shadow-glass"

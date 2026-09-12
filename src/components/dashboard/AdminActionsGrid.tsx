@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Navigation,
   PackagePlus,
+  Power,
   Save,
   Shield,
   Skull,
@@ -21,6 +22,8 @@ import { TacticalCard } from "../ui/TacticalCard";
 import { TacticalInput } from "../ui/TacticalInput";
 import { TacticalModal } from "../ui/TacticalModal";
 import { TacticalSwitch } from "../ui/TacticalSwitch";
+import { NativeCommandsModal } from "./NativeCommandsModal";
+import { ScheduledShutdownModal } from "./ScheduledShutdownModal";
 import { invoke } from "@tauri-apps/api/core";
 
 export const AdminActionsGrid: React.FC = () => {
@@ -29,6 +32,9 @@ export const AdminActionsGrid: React.FC = () => {
   // Estados dos Modais
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [showCommandsModal, setShowCommandsModal] = useState(false);
+  const [showShutdownModal, setShowShutdownModal] = useState(false);
+  const [isRaining, setIsRaining] = useState(false);
 
   // Form states
   const [targetNick, setTargetNick] = useState("");
@@ -36,7 +42,7 @@ export const AdminActionsGrid: React.FC = () => {
   const [reason, setReason] = useState("");
   const [accessLevel, setAccessLevel] = useState("admin");
   const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [skillName, setSkillName] = useState("Aiming");
+  const [skillName, setSkillName] = useState("Woodwork");
   const [xpAmount, setXpAmount] = useState("1000");
   const [hordeLocation, setHordeLocation] = useState("Muldraugh");
   const [hordeCount, setHordeCount] = useState("50");
@@ -301,34 +307,45 @@ export const AdminActionsGrid: React.FC = () => {
               Mensagem Global
             </TacticalButton>
 
-            <div className="grid grid-cols-2 gap-1.5 pt-1">
-              <TacticalButton
-                variant="secondary"
-                size="sm"
-                icon={<CloudRain size={12} />}
-                onClick={() => executeRcon("startrain", "Chuva iniciada.")}
-                className="text-[11px]"
-              >
-                Chuva ON
-              </TacticalButton>
-              <TacticalButton
-                variant="ghost"
-                size="sm"
-                onClick={() => executeRcon("stoprain", "Chuva interrompida.")}
-                className="text-[11px]"
-              >
-                Chuva OFF
-              </TacticalButton>
+            {/* Controle de Chuva Unificado (Slide Toggle) */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+              <div className="flex items-center space-x-2">
+                <CloudRain size={14} className={isRaining ? "text-tactical-cyan" : "text-tactical-muted"} />
+                <span className="text-xs font-mono text-tactical-muted">Chuva In-Game</span>
+              </div>
+              <TacticalSwitch
+                checked={isRaining}
+                onChange={async (val) => {
+                  setIsRaining(val);
+                  if (val) {
+                    await executeRcon("startrain", "Precipitação de chuva iniciada.");
+                  } else {
+                    await executeRcon("stoprain", "Precipitação de chuva interrompida.");
+                  }
+                }}
+              />
             </div>
 
+            {/* Listar Comandos Nativos (Abre Modal Interativo) */}
             <TacticalButton
-              variant="ghost"
+              variant="secondary"
               size="sm"
               icon={<HelpCircle size={14} />}
-              onClick={() => executeRcon("help")}
-              className="w-full justify-start text-tactical-muted"
+              onClick={() => setShowCommandsModal(true)}
+              className="w-full justify-start text-tactical-cyan"
             >
-              Listar Comandos
+              Manual de Comandos B42
+            </TacticalButton>
+
+            {/* Desligamento Programado (Opção 55) */}
+            <TacticalButton
+              variant="secondary"
+              size="sm"
+              icon={<Power size={14} className="text-tactical-red" />}
+              onClick={() => setShowShutdownModal(true)}
+              className="w-full justify-start text-tactical-red border-tactical-red/30 hover:bg-tactical-red/10"
+            >
+              Desligamento Programado (Opção 55)
             </TacticalButton>
           </div>
         </TacticalCard>
@@ -494,12 +511,12 @@ export const AdminActionsGrid: React.FC = () => {
         isOpen={activeModal === "godmode"}
         onClose={() => setActiveModal(null)}
         title="Modo Deus (GodMode)"
-        subtitle="godmod"
+        subtitle="godmodeplayer"
         icon={<Shield size={18} />}
         primaryActionLabel="Aplicar"
         onPrimaryAction={() =>
           executeRcon(
-            `godmod "${targetNick}" ${godModeState ? "-true" : "-false"}`,
+            `godmodeplayer "${targetNick}" ${godModeState ? "-true" : "-false"}`,
             `GodMode de ${targetNick} definido para ${godModeState ? "ATIVO" : "INATIVO"}`
           )
         }
@@ -568,17 +585,17 @@ export const AdminActionsGrid: React.FC = () => {
         isOpen={activeModal === "heal"}
         onClose={() => setActiveModal(null)}
         title="Curar Jogador"
-        subtitle="Restaura saúde alternando Godmode"
+        subtitle="Restaura saúde alternando Godmode nativo"
         icon={<Heart size={18} />}
         primaryActionLabel="Curar Agora"
         onPrimaryAction={async () => {
           if (!targetNick.trim()) return;
           try {
             setModalLoading(true);
-            await invoke("rcon_execute", { command: `godmod "${targetNick}" -true` });
-            await invoke("rcon_execute", { command: `godmod "${targetNick}" -false` });
+            await invoke("rcon_execute", { command: `godmodeplayer "${targetNick}" -true` });
+            await invoke("rcon_execute", { command: `godmodeplayer "${targetNick}" -false` });
             showToast(`Jogador ${targetNick} curado com sucesso!`, "success");
-            addLog("rcon", `[CURA] Godmode toggle executado para ${targetNick}.`);
+            addLog("rcon", `[CURA] godmodeplayer toggle executado para ${targetNick}.`);
             setActiveModal(null);
           } catch (e: any) {
             showToast(`Erro ao curar: ${e}`, "error");
@@ -597,7 +614,7 @@ export const AdminActionsGrid: React.FC = () => {
             onChange={(e) => setTargetNick(e.target.value)}
           />
           <p className="text-xs text-tactical-muted">
-            Reaplica o truque nativo do script legado: ativa e desativa o Godmode em milissegundos para limpar ferimentos e infecções.
+            Na Build 42, ativa e desativa rapidamente o godmodeplayer para regenerar 100% da vida, estancar sangramentos e limpar infecções.
           </p>
         </div>
       </TacticalModal>
@@ -680,22 +697,52 @@ export const AdminActionsGrid: React.FC = () => {
               onChange={(e) => setSkillName(e.target.value)}
               className="w-full bg-black/40 text-tactical-text rounded-xl px-3.5 py-2.5 text-sm border border-white/10 font-mono focus:outline-none"
             >
-              <option value="Aiming">Aiming (Mira)</option>
-              <option value="Reloading">Reloading (Recarga)</option>
-              <option value="Fitness">Fitness (Condicionamento)</option>
-              <option value="Strength">Strength (Força)</option>
-              <option value="Sprinting">Sprinting (Corrida)</option>
-              <option value="Lightfoot">Lightfoot (Passo Leve)</option>
-              <option value="Nimble">Nimble (Destreza)</option>
-              <option value="Sneaking">Sneaking (Furtividade)</option>
-              <option value="Axe">Axe (Machados)</option>
-              <option value="Blunt">Blunt (Contundentes)</option>
-              <option value="Carpentry">Carpentry (Carpintaria)</option>
-              <option value="Cooking">Cooking (Culinária)</option>
-              <option value="FirstAid">First Aid (Primeiros Socorros)</option>
-              <option value="Electricity">Electricity (Elétrica)</option>
-              <option value="Mechanics">Mechanics (Mecânica)</option>
-              <option value="Tailoring">Tailoring (Costura)</option>
+              <optgroup label="Sobrevivência & Ofícios (B42 Nativo)">
+                <option value="Woodwork">Carpintaria (Woodwork)</option>
+                <option value="Doctor">Primeiros Socorros (Doctor)</option>
+                <option value="Cooking">Culinária (Cooking)</option>
+                <option value="Farming">Agricultura (Farming)</option>
+                <option value="Fishing">Pesca (Fishing)</option>
+                <option value="Trapping">Armadilhas (Trapping)</option>
+                <option value="Foraging">Coleta / Sobrevivência (Foraging)</option>
+                <option value="Electricity">Eletricidade (Electricity)</option>
+                <option value="MetalWelding">Metalurgia (MetalWelding)</option>
+                <option value="Mechanics">Mecânica (Mechanics)</option>
+                <option value="Tailoring">Costura (Tailoring)</option>
+              </optgroup>
+
+              <optgroup label="Novas Perícias Build 42">
+                <option value="Blacksmith">Ferraria (Blacksmith)</option>
+                <option value="Masonry">Alvenaria (Masonry)</option>
+                <option value="Pottery">Cerâmica / Oleiro (Pottery)</option>
+                <option value="Glassmaking">Vidraria (Glassmaking)</option>
+                <option value="Carving">Entalhe em Madeira (Carving)</option>
+                <option value="FlintKnapping">Lascamento Pederneira (FlintKnapping)</option>
+                <option value="Tracking">Rastreamento Animal (Tracking)</option>
+                <option value="Husbandry">Criação / Pecuária (Husbandry)</option>
+                <option value="Butchering">Açougue / Abate (Butchering)</option>
+              </optgroup>
+
+              <optgroup label="Combate & Armas">
+                <option value="Aiming">Pontaria / Mira (Aiming)</option>
+                <option value="Reloading">Recarga (Reloading)</option>
+                <option value="Axe">Machados (Axe)</option>
+                <option value="Blunt">Contundente Longo (Blunt)</option>
+                <option value="SmallBlunt">Contundente Curto (SmallBlunt)</option>
+                <option value="LongBlade">Lâmina Longa (LongBlade)</option>
+                <option value="SmallBlade">Lâmina Curta (SmallBlade)</option>
+                <option value="Spear">Lanças (Spear)</option>
+                <option value="Maintenance">Manutenção (Maintenance)</option>
+              </optgroup>
+
+              <optgroup label="Agilidade & Físico">
+                <option value="Sneak">Furtividade (Sneak)</option>
+                <option value="Lightfoot">Passos Leves (Lightfoot)</option>
+                <option value="Nimble">Destreza / Agilidade (Nimble)</option>
+                <option value="Sprinting">Corrida (Sprinting)</option>
+                <option value="Fitness">Aptidão Física (Fitness)</option>
+                <option value="Strength">Força (Strength)</option>
+              </optgroup>
             </select>
           </div>
           <TacticalInput
@@ -826,6 +873,19 @@ export const AdminActionsGrid: React.FC = () => {
           />
         </div>
       </TacticalModal>
+
+      {/* 13. Manual de Comandos Nativos (Build 42) */}
+      <NativeCommandsModal
+        isOpen={showCommandsModal}
+        onClose={() => setShowCommandsModal(false)}
+        onExecuteCommand={(cmd) => executeRcon(cmd)}
+      />
+
+      {/* 14. Desligamento Programado (Opção 55) */}
+      <ScheduledShutdownModal
+        isOpen={showShutdownModal}
+        onClose={() => setShowShutdownModal(false)}
+      />
     </div>
   );
 };

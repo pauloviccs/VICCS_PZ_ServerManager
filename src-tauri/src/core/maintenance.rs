@@ -53,6 +53,7 @@ pub fn open_folder(target: &str) -> Result<(), String> {
         "server_config" => userprofile.join("Zomboid").join("Server"),
         "saves" => userprofile.join("Zomboid").join("Saves").join("Multiplayer"),
         "backups" => userprofile.join("Zomboid_Backups"),
+        "app_logs" => userprofile.join("Zomboid").join("ServerManager_Logs"),
         "server_root" => PathBuf::from("C:\\pzserver"),
         custom => PathBuf::from(custom),
     };
@@ -120,3 +121,38 @@ pub fn schedule_windows_shutdown(seconds: u32) -> Result<String, String> {
         Err(format!("Erro ao agendar desligamento: {}", stderr))
     }
 }
+
+pub fn write_to_app_log(source: &str, message: &str) {
+    let userprofile = get_userprofile();
+    let log_dir = userprofile.join("Zomboid").join("ServerManager_Logs");
+    let _ = fs::create_dir_all(&log_dir);
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let log_file = log_dir.join(format!("pz_manager_{}.log", today));
+    let time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let entry = format!("[{}] [{}] {}\n", time, source.to_uppercase(), message);
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(log_file) {
+        use std::io::Write;
+        let _ = file.write_all(entry.as_bytes());
+    }
+}
+
+pub fn get_app_logs_dir() -> Result<String, String> {
+    let userprofile = get_userprofile();
+    let log_dir = userprofile.join("Zomboid").join("ServerManager_Logs");
+    let _ = fs::create_dir_all(&log_dir);
+    Ok(log_dir.to_string_lossy().to_string())
+}
+
+pub fn read_recent_app_logs() -> Result<Vec<String>, String> {
+    let userprofile = get_userprofile();
+    let log_dir = userprofile.join("Zomboid").join("ServerManager_Logs");
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let log_file = log_dir.join(format!("pz_manager_{}.log", today));
+    if !log_file.exists() {
+        return Ok(Vec::new());
+    }
+    let content = fs::read_to_string(&log_file).map_err(|e| e.to_string())?;
+    let lines: Vec<String> = content.lines().rev().take(500).map(|s| s.to_string()).collect();
+    Ok(lines)
+}
+

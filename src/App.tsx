@@ -12,6 +12,7 @@ import { TopHeader } from "./components/layout/TopHeader";
 import { ModManagerView } from "./components/mods/ModManagerView";
 import { ResourceCharts } from "./components/monitor/ResourceCharts";
 import { AppSettingsView } from "./components/settings/AppSettingsView";
+import { AppLogsView } from "./components/diagnostics/AppLogsView";
 import { useServerStore } from "./store/serverStore";
 import { ResourceStats, ServerStatus } from "./types";
 
@@ -31,12 +32,26 @@ export const App: React.FC = () => {
     rconPort,
     rconPassword,
     setRconConnected,
+    shutdownActive,
+    shutdownCountdown,
+    shutdownIncludesWindows,
+    tickShutdown,
+    cancelScheduledShutdown,
   } = useServerStore();
 
   useEffect(() => {
     // Sincroniza portas e dados do servertest.ini na inicialização
     syncFromIni();
   }, [syncFromIni]);
+
+  // Intervalo do Desligamento Programado (Opção 55)
+  useEffect(() => {
+    if (!shutdownActive) return;
+    const interval = setInterval(() => {
+      tickShutdown();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [shutdownActive, tickShutdown]);
 
   useEffect(() => {
     // 1. Escuta logs do servidor (stdout/stderr)
@@ -136,6 +151,31 @@ export const App: React.FC = () => {
         {/* Top Header */}
         <TopHeader />
 
+        {/* Banner de Aviso de Desligamento Programado Ativo */}
+        {shutdownActive && shutdownCountdown !== null && (
+          <div className="bg-tactical-red/20 border-b border-tactical-red/40 px-6 py-2.5 flex items-center justify-between text-xs font-mono shrink-0 animate-pulse">
+            <div className="flex items-center space-x-3 text-tactical-red">
+              <span className="w-2.5 h-2.5 rounded-full bg-tactical-red animate-ping" />
+              <span className="font-bold tracking-wider">
+                [DESLIGAMENTO PROGRAMADO ATIVO]
+              </span>
+              <span className="text-white">
+                O servidor será salvo e encerrado em{" "}
+                <span className="text-tactical-amber font-bold text-sm underline">
+                  {Math.floor(shutdownCountdown / 60)}m {shutdownCountdown % 60}s
+                </span>
+                {shutdownIncludesWindows ? " (com desligamento do Windows)" : ""}
+              </span>
+            </div>
+            <button
+              onClick={() => cancelScheduledShutdown()}
+              className="px-3 py-1 bg-tactical-red hover:bg-tactical-red-light text-white rounded-lg font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              ABORTAR AGORA
+            </button>
+          </div>
+        )}
+
         {/* Scrollable Main View Container */}
         <main className="flex-1 overflow-y-auto p-8">
           {activeTab === "dashboard" && (
@@ -167,6 +207,12 @@ export const App: React.FC = () => {
           {activeTab === "mods" && (
             <div className="max-w-7xl mx-auto">
               <ModManagerView />
+            </div>
+          )}
+
+          {activeTab === "diagnostics" && (
+            <div className="max-w-7xl mx-auto">
+              <AppLogsView />
             </div>
           )}
 

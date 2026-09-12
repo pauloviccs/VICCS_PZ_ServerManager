@@ -140,6 +140,22 @@ fn scan_all_mods(
     Ok(all)
 }
 
+#[tauri::command]
+fn write_client_log(source: String, message: String) -> Result<(), String> {
+    maintenance::write_to_app_log(&source, &message);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_app_logs_dir() -> Result<String, String> {
+    maintenance::get_app_logs_dir()
+}
+
+#[tauri::command]
+fn read_recent_app_logs() -> Result<Vec<String>, String> {
+    maintenance::read_recent_app_logs()
+}
+
 pub fn run() {
     let app_state = Arc::new(AppState {
         process_manager: ProcessManagerState::new(),
@@ -171,7 +187,10 @@ pub fn run() {
             save_ini,
             read_sandbox,
             save_sandbox,
-            scan_all_mods
+            scan_all_mods,
+            write_client_log,
+            get_app_logs_dir,
+            read_recent_app_logs
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao executar Tauri application");

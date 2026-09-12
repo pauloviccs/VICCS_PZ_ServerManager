@@ -36,4 +36,4 @@ export interface LuaSandboxData {
   raw_content: string;
 }
 
-export type ActiveTab = "dashboard" | "console" | "monitor" | "config" | "mods" | "settings";
+export type ActiveTab = "dashboard" | "console" | "monitor" | "config" | "mods" | "settings" | "diagnostics";

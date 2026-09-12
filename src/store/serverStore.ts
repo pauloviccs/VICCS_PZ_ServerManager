@@ -66,6 +66,16 @@ interface ServerState {
   showToast: (message: string, type?: "success" | "error" | "info") => void;
   hideToast: () => void;
 
+  // Desligamento Programado (Opção 55)
+  shutdownActive: boolean;
+  shutdownCountdown: number | null;
+  shutdownTotalSeconds: number | null;
+  shutdownIncludesWindows: boolean;
+  shutdownWindowsDelay: number;
+  startScheduledShutdown: (minutes: number, includeWindows: boolean, windowsDelaySec?: number) => void;
+  cancelScheduledShutdown: () => Promise<void>;
+  tickShutdown: () => Promise<void>;
+
   // Ações Auxiliares
   sendDiscordWebhook: (message: string) => Promise<boolean>;
   syncFromIni: () => Promise<void>;
@@ -165,6 +175,151 @@ export const useServerStore = create<ServerState>()(
         }, 4000);
       },
       hideToast: () => set({ toast: null }),
+
+      // Opção 55 - Desligamento Programado
+      shutdownActive: false,
+      shutdownCountdown: null,
+      shutdownTotalSeconds: null,
+      shutdownIncludesWindows: false,
+      shutdownWindowsDelay: 60,
+
+      startScheduledShutdown: (minutes: number, includeWindows: boolean, windowsDelaySec = 60) => {
+        const totalSec = Math.max(10, minutes * 60);
+        set({
+          shutdownActive: true,
+          shutdownCountdown: totalSec,
+          shutdownTotalSeconds: totalSec,
+          shutdownIncludesWindows: includeWindows,
+          shutdownWindowsDelay: windowsDelaySec,
+        });
+
+        const { rconConnected, sendDiscordWebhook, addLog } = get();
+        addLog("stdout", `[DESLIGAMENTO PROGRAMADO] Agendado para ${minutes} minutos. Inclui Windows: ${includeWindows ? "SIM" : "NÃO"}`);
+        if (rconConnected) {
+          invoke("rcon_execute", {
+            command: `servermsg "AVISO: O servidor sera desligado em ${minutes} minuto(s) para manutencao e backup."`,
+          }).catch(() => {});
+        }
+        sendDiscordWebhook(`⚠️ **[Aviso de Encerramento]** O servidor será desligado em **${minutes} minuto(s)** para salvamento e backup.`);
+      },
+
+      cancelScheduledShutdown: async () => {
+        const { rconConnected, sendDiscordWebhook, addLog, shutdownIncludesWindows } = get();
+        set({
+          shutdownActive: false,
+          shutdownCountdown: null,
+          shutdownTotalSeconds: null,
+        });
+
+        addLog("stdout", "[DESLIGAMENTO PROGRAMADO] Cancelado pela administração.");
+        if (rconConnected) {
+          invoke("rcon_execute", {
+            command: `servermsg "AVISO: O desligamento programado foi CANCELADO pela administracao."`,
+          }).catch(() => {});
+        }
+        if (shutdownIncludesWindows) {
+          invoke("cancel_windows_shutdown").catch(() => {});
+        }
+        sendDiscordWebhook("🟢 **[Cancelamento]** O desligamento programado foi abortado.");
+      },
+
+      tickShutdown: async () => {
+        const state = get();
+        if (!state.shutdownActive || state.shutdownCountdown === null) return;
+
+        const next = state.shutdownCountdown - 1;
+        const { rconConnected, sendDiscordWebhook, addLog, shutdownIncludesWindows, shutdownWindowsDelay } = state;
+
+        if (next > 0) {
+          set({ shutdownCountdown: next });
+
+          // Avisos a cada minuto
+          if (next > 60 && next % 60 === 0) {
+            const mins = Math.floor(next / 60);
+            if (rconConnected) {
+              invoke("rcon_execute", {
+                command: `servermsg "AVISO: O servidor sera desligado em ${mins} minuto(s)."`,
+              }).catch(() => {});
+            }
+          }
+          // Avisos nos momentos críticos
+          else if (next === 60) {
+            if (rconConnected) {
+              invoke("rcon_execute", {
+                command: `servermsg "ATENCAO: Servidor desligando em 60 segundos! Encontre um local seguro."`,
+              }).catch(() => {});
+            }
+            sendDiscordWebhook("⏳ **[Último Aviso]** O servidor de Project Zomboid será desligado em **60 segundos**.");
+          } else if (next === 30) {
+            if (rconConnected) {
+              invoke("rcon_execute", {
+                command: `servermsg "ATENCAO: 30 segundos restantes para encerramento!"`,
+              }).catch(() => {});
+            }
+          } else if (next === 15) {
+            if (rconConnected) {
+              invoke("rcon_execute", {
+                command: `servermsg "ATENCAO: 15 segundos restantes!"`,
+              }).catch(() => {});
+            }
+          } else if (next <= 10 && next >= 1) {
+            if (rconConnected) {
+              invoke("rcon_execute", {
+                command: `servermsg "Desligando em ${next}..."`,
+              }).catch(() => {});
+            }
+          }
+        } else {
+          // Zero atingido! Executa salvamento, backup e encerramento
+          set({ shutdownActive: false, shutdownCountdown: 0 });
+          addLog("stdout", "[DESLIGAMENTO PROGRAMADO] Tempo esgotado. Iniciando rotina de encerramento seguro...");
+
+          if (rconConnected) {
+            try {
+              await invoke("rcon_execute", {
+                command: `servermsg "SALVANDO MUNDO E CRIANDO BACKUP AGORA..."`,
+              });
+              await invoke("rcon_execute", { command: "save" });
+              addLog("stdout", "[DESLIGAMENTO PROGRAMADO] Mundo salvo via RCON.");
+            } catch (e) {
+              console.warn("Erro ao salvar RCON no shutdown:", e);
+            }
+          }
+
+          // Criação de Backup
+          try {
+            addLog("stdout", "[DESLIGAMENTO PROGRAMADO] Criando snapshot de backup do servidor...");
+            const backupPath: string = await invoke("create_backup");
+            addLog("stdout", `[BACKUP CRIADO] ${backupPath}`);
+          } catch (e) {
+            addLog("stderr", `[FALHA NO BACKUP] ${e}`);
+          }
+
+          // Encerra servidor gracioso
+          if (rconConnected) {
+            try {
+              await invoke("rcon_execute", { command: "quit" });
+            } catch (e) {
+              console.warn("Erro ao enviar quit:", e);
+            }
+          }
+          await invoke("stop_server").catch(() => {});
+          set({ shutdownCountdown: null });
+
+          sendDiscordWebhook("🛑 **[Servidor Desligado]** Rotina de encerramento programado e backup concluída com sucesso.");
+
+          // Se incluir Windows
+          if (shutdownIncludesWindows) {
+            addLog("stdout", `[WINDOWS SHUTDOWN] Agendando desligamento do Windows em ${shutdownWindowsDelay} segundos...`);
+            try {
+              await invoke("schedule_windows_shutdown", { seconds: shutdownWindowsDelay });
+              sendDiscordWebhook(`💻 **[Windows Shutdown]** A máquina física será desligada em **${shutdownWindowsDelay} segundos**.`);
+            } catch (e) {
+              addLog("stderr", `[ERRO WINDOWS SHUTDOWN] ${e}`);
+            }
+          }
+        }
+      },
 
       // Disparo de Webhook para Discord
       sendDiscordWebhook: async (message: string) => {

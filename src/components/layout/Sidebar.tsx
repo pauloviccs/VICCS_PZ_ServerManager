@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Activity,
+  FileText,
   LayoutDashboard,
   Package,
   Server,
@@ -39,6 +40,11 @@ export const Sidebar: React.FC = () => {
       id: "mods",
       label: "Mods & Workshop",
       icon: <Package size={18} />,
+    },
+    {
+      id: "diagnostics",
+      label: "Logs do App",
+      icon: <FileText size={18} />,
     },
     {
       id: "settings",

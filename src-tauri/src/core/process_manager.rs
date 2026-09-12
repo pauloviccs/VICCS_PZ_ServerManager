@@ -121,11 +121,18 @@ impl ProcessManagerState {
         let app_stdout = app.clone();
         let status_arc = self.server_status.clone();
 
+        crate::core::maintenance::write_to_app_log(
+            "system",
+            &format!("Iniciando servidor PZ (PID: {}) com {} de RAM...", pid, allocated_ram),
+        );
+
         // Leitor assíncrono de stdout
         tauri::async_runtime::spawn(async move {
             let mut reader = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 let now = chrono::Local::now().format("%H:%M:%S").to_string();
+
+                crate::core::maintenance::write_to_app_log("stdout", &line);
 
                 if line.contains("*** SERVER STARTED ****") {
                     let mut st = status_arc.lock().await;
@@ -156,6 +163,9 @@ impl ProcessManagerState {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 let now = chrono::Local::now().format("%H:%M:%S").to_string();
+
+                crate::core::maintenance::write_to_app_log("stderr", &line);
+
                 let _ = app_stderr.emit(
                     "server-log",
                     ServerLogEvent {
