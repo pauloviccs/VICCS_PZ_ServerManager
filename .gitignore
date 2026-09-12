@@ -1,0 +1,44 @@
+# Executables & Binaries (Excluídos explicitamente conforme solicitado)
+*.exe
+*.msi
+*.dll
+*.so
+*.dylib
+*.pdb
+*.bin
+*.iso
+*.dmg
+
+# Rust / Cargo Build Output
+/target/
+src-tauri/target/
+**/*.rs.bk
+
+# Node & Frontend Build Output
+/node_modules/
+/dist/
+dist-ssr/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Environment & Local Configurations
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
